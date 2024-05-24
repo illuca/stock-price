@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
-import { DatePicker, Input, Button,message } from 'antd';
-// import 'antd/dist/antd.min.css';
+import { DatePicker, Input, Button, message } from "antd";
+import "./Stock.css";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import moment from 'moment';
+import moment from "moment";
 
 ChartJS.register(
   CategoryScale,
@@ -26,10 +26,7 @@ ChartJS.register(
 );
 
 export default function StockChart() {
-  const [ticker, setTicker] = useState("000001");
-  const [startDate, setStartDate] = useState(moment("1990-12-19"));
-  const [endDate, setEndDate] = useState(moment("1990-12-27"));
-  const [chartData, setChartData] = useState({
+  const defaultCharData = {
     labels: [],
     datasets: [
       {
@@ -40,13 +37,18 @@ export default function StockChart() {
         fill: false,
       },
     ],
-  });
+  };
+  const { RangePicker } = DatePicker;
+  const [ticker, setTicker] = useState("000001");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [chartData, setChartData] = useState(defaultCharData);
 
   const formatChartData = (data) => {
-    if(!data){
-      return {}
+    if (!data) {
+      return {};
     }
-    console.log(data)
+    console.log(data);
     return {
       labels: data.map((d) => d?.timetag),
       datasets: [
@@ -63,13 +65,32 @@ export default function StockChart() {
     };
   };
 
+  function checkValid() {
+    if (!ticker) {
+      message.error("股票编号不能为空");
+      return false;
+    }
+    if (!startDate || !endDate) {
+      message.error("日期范围不能为空");
+      return false;
+    }
+    if (startDate.isAfter(endDate)) {
+      message.error("开始日期不能晚于结束日期");
+      return false;
+    }
+    return true;
+  }
+
   async function fetchCloseData() {
+    if (!checkValid()) {
+      return;
+    }
     axios
       .get("http://localhost:3005/stocks", {
         params: {
           ticker,
-          startDate: startDate.format('YYYY-MM-DD'),
-          endDate: endDate.format('YYYY-MM-DD'),
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
         },
       })
       .then(({ data }) => {
@@ -106,22 +127,22 @@ export default function StockChart() {
               R.pop();
             }
             R.push(arr[i]);
-            prev =
-              R[R.length - 1].changePercent = doCalChangePercent(
-                R[R.length - 2],
-                R[R.length - 1]
-              );
+            prev = R[R.length - 1].changePercent = doCalChangePercent(
+              R[R.length - 2],
+              R[R.length - 1]
+            );
           }
           return R;
         }
         message.success(`成功获取 ${data.length} 条数据`);
-        if(data && data.length > 0){
+        if (data && data.length > 0) {
           data = calChangePercent(data);
           let cleaned = cleanData(data);
           let formatted = formatChartData(cleaned);
           setChartData(formatted);
+        } else {
+          setChartData(defaultCharData);
         }
-        
       })
       .catch((err) => {
         message.error("数据获取失败，请重试");
@@ -133,34 +154,33 @@ export default function StockChart() {
   }, []);
 
   return (
-    <div>
-      <Input
-        value={ticker}
-        onChange={(e) => {
-          setTicker(e.target.value);
-        }}
-        style={{ width: 200, marginBottom: 10 }}
-      />
-      <DatePicker
-        onChange={(date,_) => {
-          setStartDate(date)
-        }}
-        style={{ marginLeft: 10,marginRight: 10 }}
-      />
-      <DatePicker
-        onChange={(date,_) => {
-          setEndDate(date)
-        }}
-        style={{ marginRight: 10 }}
-      />
-      <Button
-        onClick={() => {
-          console.log(startDate, endDate);
-          fetchCloseData();
-        }}
-      >
-        提交
-      </Button>
+    <div className="stock-container">
+      <div className="stock-info">
+        <span>股票编号:</span>
+        <Input
+          value={ticker}
+          onChange={(e) => {
+            setTicker(e.target.value);
+          }}
+          style={{ width: 200, marginBottom: 10 }}
+        />
+        <span>日期范围:</span>
+        <RangePicker
+          onChange={([start, end]) => {
+            if (start && end) {
+              setStartDate(start);
+              setEndDate(end);
+            }
+          }}
+        />
+        <Button
+          onClick={() => {
+            fetchCloseData();
+          }}
+        >
+          提交
+        </Button>
+      </div>
       {Object.keys(chartData).length !== 0 ? (
         <Line
           data={chartData}
@@ -169,12 +189,14 @@ export default function StockChart() {
               tooltip: {
                 callbacks: {
                   label: function (context) {
-                    let label = context.dataset.label || '';
+                    let label = context.dataset.label || "";
                     if (label) {
-                      label += ': ';
+                      label += ": ";
                     }
                     label += context.parsed.y;
-                    label += ` (Change %: ${context.raw.changePercent.toFixed(4)}%)`;
+                    label += ` (Change %: ${context.raw.changePercent.toFixed(
+                      4
+                    )}%)`;
                     return label;
                   },
                 },

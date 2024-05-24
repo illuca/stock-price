@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import StockChart from './component/Stock';
+import StockChart from './pages/Stock/Stock';
 
 function App() {
   return (

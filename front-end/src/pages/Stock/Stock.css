@@ -1,0 +1,22 @@
+
+.stock-info{
+    margin-top: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+
+}
+
+.stock-info > input{
+    margin-bottom: 0 !important;
+}
+
+.stock-info > span {
+    margin-left: 10px;
+    margin-right: 5px;
+}
+
+.stock-info > button {
+    margin-left: 10px;
+}
